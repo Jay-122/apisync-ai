@@ -3,7 +3,8 @@ import { AUTO_PROPOSE_THRESHOLD } from "@/lib/ast/rules";
 import { transformFile } from "@/lib/ast/transformer";
 import { analyzeChangelog } from "@/lib/ai/changelogAnalyzer";
 import { DEMO_BRANCH, DEMO_FILES, DEMO_MIGRATION_ID, DEMO_REPOSITORY } from "@/lib/demo/files";
-import { bumpDependency, detectEcosystem, detectPackageManager, readDependencyVersions } from "@/lib/dependencies/detect";
+import { detectEcosystem, detectPackageManager, readDependencyVersions } from "@/lib/dependencies/detect";
+import { bumpManifestFile, targetDependencyRange } from "@/lib/migration/manifest";
 import { diffStats } from "@/lib/diff/stats";
 import { buildPullRequest } from "@/lib/github/pr-body";
 import { createMigrationPullRequest } from "@/lib/github/pr";
@@ -13,8 +14,6 @@ import { validateMigration } from "@/lib/validation/engine";
 import { ApiError } from "@/lib/security/errors";
 import { log } from "@/lib/security/logger";
 import type { FileTransform, MigrationResult, TimelineEvent, TimelineEventName } from "@/types";
-
-const TARGET_RANGE = "^4.0.0";
 
 export async function scanDemo() {
   const paths = DEMO_FILES.map((file) => file.path);
@@ -57,7 +56,10 @@ export async function runDemoMigration(): Promise<MigrationResult> {
   mark("files_scanned", `${DEMO_FILES.length} demo files indexed.`);
 
   const transforms = DEMO_FILES.map((file) => {
-    if (file.path === "package.json") return bumpManifest(file.content);
+    if (file.path === "package.json") {
+      const range = targetDependencyRange("openai", "4.x");
+      return range ? bumpManifestFile(file.path, file.content, "openai", range) : file;
+    }
     return transformFile({ path: file.path, content: file.content, packageName: "openai" });
   });
   mark("transformations_generated", `${transforms.filter((file) => file.changed).length} files changed.`);
@@ -151,6 +153,16 @@ export async function runGithubMigration(input: {
     files.push(transformFile({ path, content, packageName: target.packageName }));
   }
 
+  const range = targetDependencyRange(target.packageName, analysis.toVersion);
+  if (range && scan.manifestPath) {
+    const { readRepositoryFile } = await import("@/lib/github/scan");
+    const manifest = await readRepositoryFile({ ...input, path: scan.manifestPath });
+    const bumped = bumpManifestFile(scan.manifestPath, manifest, target.packageName, range);
+    if (bumped.changed) {
+      files.push(bumped);
+    }
+  }
+
   const validation = validateMigration(files, "github");
   const changed = files.filter((file) => file.changed);
   const confidence = changed.length ? Math.min(...changed.map((file) => file.confidence)) : 0;
@@ -241,32 +253,6 @@ export async function runGithubMigration(input: {
 
   await recordMigration(result);
   return result;
-}
-
-function bumpManifest(content: string): FileTransform {
-  const modified = bumpDependency(content, "openai", TARGET_RANGE);
-  if (!modified || modified === content) {
-    return {
-      path: "package.json",
-      original: content,
-      modified: content,
-      changed: false,
-      skipped: false,
-      skipReason: "openai was not a dependency in package.json.",
-      confidence: 1,
-      edits: [],
-    };
-  }
-
-  return {
-    path: "package.json",
-    original: content,
-    modified,
-    changed: true,
-    skipped: false,
-    confidence: 0.99,
-    edits: [`openai dependency range → ${TARGET_RANGE}`],
-  };
 }
 
 function explanation(summary: string, files: FileTransform[]) {

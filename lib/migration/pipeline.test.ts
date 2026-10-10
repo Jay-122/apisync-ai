@@ -99,7 +99,10 @@ describe("demo migration", () => {
     expect(result.pullRequest.branch).not.toBe("main");
     expect(result.validation.typescript).toBe("passed");
     expect(result.validation.tests).toBe("passed");
-    expect(result.filesChanged).toBeGreaterThanOrEqual(3);
+    expect(result.filesChanged).toBeGreaterThanOrEqual(4);
+    const manifest = result.files.find((file) => file.path === "package.json");
+    expect(manifest?.changed).toBe(true);
+    expect(manifest?.modified).toContain('"openai": "^4.0.0"');
     const rewritten = result.files.find((file) => file.path === "src/lib/openai.ts");
     expect(rewritten?.modified).toContain("completions.create");
     const skipped = result.files.find((file) => file.path === "src/experiments/unsafe-call.ts");

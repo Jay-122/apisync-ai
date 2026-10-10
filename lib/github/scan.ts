@@ -33,7 +33,9 @@ export async function scanRepository(input: {
     notes.push(`${ecosystem} repositories are detected but not transformed yet.`);
   }
 
-  const manifestPath = paths.find((path) => path === "package.json" || path.endsWith("/package.json"));
+  const manifestPath =
+    paths.find((path) => path === "package.json") ??
+    paths.find((path) => path.endsWith("/package.json"));
   if (!manifestPath) {
     return {
       mode: "github",
@@ -63,16 +65,17 @@ export async function scanRepository(input: {
     notes.push(`Indexed the first ${MAX_FILES} source files. Narrow the repository or request a path filter for the rest.`);
   }
 
-  return {
-    mode: "github",
-    repository: `${input.owner}/${input.repo}`,
-    simulated: false,
-    packageManager: detectPackageManager(paths),
-    ecosystem,
-    dependencies: analyzeDependencyUsage(files, versions),
-    supported: ["openai", "stripe", "twilio"],
-    notes,
-  };
+return {
+      mode: "github",
+      repository: `${input.owner}/${input.repo}`,
+      simulated: false,
+      packageManager: detectPackageManager(paths),
+      ecosystem,
+      manifestPath,
+      dependencies: analyzeDependencyUsage(files, versions),
+      supported: ["openai", "stripe", "twilio"],
+      notes,
+    };
 }
 
 async function readFile(

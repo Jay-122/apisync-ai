@@ -112,6 +112,7 @@ export type ScanResult = {
   simulated: boolean;
   packageManager: PackageManager;
   ecosystem: Ecosystem;
+  manifestPath?: string;
   dependencies: CodebaseDependencyUsage[];
   supported: string[];
   notes: string[];
