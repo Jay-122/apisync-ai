@@ -9,11 +9,11 @@ import { CommandPalette } from "@/components/shell/command-palette";
 import { Button } from "@/components/ui/button";
 
 const links = [
-  { href: "/#product", label: "Product" },
+  { href: "/sandbox", label: "Product" },
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/sandbox", label: "Sandbox" },
+  { href: "/#proof", label: "Proof" },
   { href: "/docs", label: "Docs" },
-  { href: "/docs#github-app", label: "GitHub" },
+  { href: "/connect", label: "GitHub" },
 ];
 
 export function SiteHeader() {

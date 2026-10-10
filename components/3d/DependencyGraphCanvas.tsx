@@ -70,12 +70,14 @@ function Node({
   label,
   pulse,
   radius,
+  showLabel,
 }: {
   position: [number, number, number];
   color: string;
   label: string;
   pulse: boolean;
   radius: number;
+  showLabel: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
@@ -90,14 +92,16 @@ function Node({
         <sphereGeometry args={[radius, 20, 20]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.85} roughness={0.35} />
       </mesh>
-      <Html center distanceFactor={9} style={{ pointerEvents: "none" }}>
-        <div className="mt-8 whitespace-nowrap text-center text-[10px] font-medium text-slate-200">{label}</div>
-      </Html>
+      {showLabel ? (
+        <Html center distanceFactor={9} style={{ pointerEvents: "none" }}>
+          <div className="mt-8 whitespace-nowrap text-center text-[10px] font-medium text-slate-200">{label}</div>
+        </Html>
+      ) : null}
     </group>
   );
 }
 
-function Scene({ story }: { story: DependencyStatus }) {
+function Scene({ story, showLabels }: { story: DependencyStatus; showLabels: boolean }) {
   const group = useRef<THREE.Group>(null);
   useFrame(({ clock, pointer, camera }) => {
     if (group.current) group.current.rotation.z = Math.sin(clock.elapsedTime * 0.15) * 0.03;
@@ -132,7 +136,14 @@ function Scene({ story }: { story: DependencyStatus }) {
           lineWidth={1}
         />
       ))}
-      <Node position={[0, 0, 0]} color="#22d3ee" label="YOUR CODEBASE" pulse={false} radius={0.28} />
+      <Node
+        position={[0, 0, 0]}
+        color="#22d3ee"
+        label="YOUR CODEBASE"
+        pulse={false}
+        radius={0.28}
+        showLabel={showLabels}
+      />
       {nodes.map((node) => (
         <Node
           key={node.id}
@@ -141,6 +152,7 @@ function Scene({ story }: { story: DependencyStatus }) {
           label={node.label}
           pulse={node.status === "breaking" || node.status === "fixing"}
           radius={0.16}
+          showLabel={showLabels}
         />
       ))}
       <Particles />
@@ -148,7 +160,13 @@ function Scene({ story }: { story: DependencyStatus }) {
   );
 }
 
-export function DependencyGraphCanvas({ animateStory = true }: { animateStory?: boolean }) {
+export function DependencyGraphCanvas({
+  animateStory = true,
+  showLabels = true,
+}: {
+  animateStory?: boolean;
+  showLabels?: boolean;
+}) {
   const [mode, setMode] = useState<"pending" | "canvas" | "fallback">("pending");
   const [visible, setVisible] = useState(true);
   const [story, setStory] = useState<DependencyStatus>("healthy");
@@ -189,7 +207,7 @@ export function DependencyGraphCanvas({ animateStory = true }: { animateStory?: 
           frameloop={visible ? "always" : "never"}
           gl={{ antialias: true, powerPreference: "high-performance", alpha: true }}
         >
-          <Scene story={story} />
+          <Scene story={story} showLabels={showLabels} />
         </Canvas>
       ) : null}
     </div>

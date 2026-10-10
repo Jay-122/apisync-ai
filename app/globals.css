@@ -28,6 +28,10 @@ body {
   font-family: var(--font-sans);
 }
 
+[id] {
+  scroll-margin-top: 4.5rem;
+}
+
 ::selection {
   background: rgba(34, 211, 238, 0.28);
   color: #f8fafc;
