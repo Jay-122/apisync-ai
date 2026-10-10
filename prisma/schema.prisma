@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String?        @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  organizations Organization[]
+}
+
+model Organization {
+  id             String               @id @default(cuid())
+  name           String
+  slug           String               @unique
+  createdAt      DateTime             @default(now())
+  users          User[]
+  installations  GitHubInstallation[]
+  repositories   Repository[]
+}
+
+model GitHubInstallation {
+  id             String       @id @default(cuid())
+  installationId Int          @unique
+  accountLogin   String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  repositories   Repository[]
+  createdAt      DateTime     @default(now())
+}
+
+model Repository {
+  id             String              @id @default(cuid())
+  owner          String
+  name           String
+  defaultBranch  String              @default("main")
+  installationId String?
+  installation   GitHubInstallation? @relation(fields: [installationId], references: [id])
+  organizationId String?
+  organization   Organization?       @relation(fields: [organizationId], references: [id])
+  dependencies   Dependency[]
+  migrations     Migration[]
+
+  @@unique([owner, name])
+}
+
+model Dependency {
+  id           String            @id @default(cuid())
+  packageName  String
+  version      String
+  ecosystem    String            @default("node")
+  repositoryId String
+  repository   Repository        @relation(fields: [repositoryId], references: [id])
+  usages       DependencyUsage[]
+  migrations   Migration[]
+}
+
+model DependencyUsage {
+  id           String     @id @default(cuid())
+  dependencyId String
+  dependency   Dependency @relation(fields: [dependencyId], references: [id])
+  filePath     String
+  importName   String
+  usageCount   Int
+}
+
+model Migration {
+  id           String            @id @default(cuid())
+  dependencyId String?
+  dependency   Dependency?       @relation(fields: [dependencyId], references: [id])
+  repositoryId String?
+  repository   Repository?       @relation(fields: [repositoryId], references: [id])
+  fromVersion  String
+  toVersion    String
+  status       String
+  confidence   Float
+  createdAt    DateTime          @default(now())
+  changes      MigrationChange[]
+  runs         MigrationRun[]
+  pullRequest  PullRequest?
+}
+
+model MigrationChange {
+  id          String    @id @default(cuid())
+  migrationId String
+  migration   Migration @relation(fields: [migrationId], references: [id])
+  filePath    String
+  description String
+  confidence  Float
+}
+
+model MigrationRun {
+  id          String    @id
+  migrationId String
+  migration   Migration @relation(fields: [migrationId], references: [id])
+  status      String
+  timeline    Json
+  createdAt   DateTime  @default(now())
+}
+
+model PullRequest {
+  id          String    @id @default(cuid())
+  migrationId String    @unique
+  migration   Migration @relation(fields: [migrationId], references: [id])
+  number      Int?
+  url         String?
+  branch      String
+  base        String
+  status      String
+  simulated   Boolean   @default(false)
+  title       String
+  body        String    @db.Text
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  tone      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
