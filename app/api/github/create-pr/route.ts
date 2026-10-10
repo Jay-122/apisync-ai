@@ -22,11 +22,23 @@ export const POST = withApi("/api/github/create-pr", async (request) => {
   });
 
   if (result.pullRequest.status === "blocked") {
+    const failedCheck = result.validation.checks.find((check) => check.status === "failed");
+    let message = "Pull request creation is blocked.";
+    if (result.filesChanged === 0) {
+      message =
+        "No files would change. Source may already use the new API on main. ApiSync will still propose a package.json bump when a dependency range is outdated — redeploy the latest app if you expected that.";
+    } else if (result.confidence < 0.8) {
+      message = `Confidence ${Math.round(result.confidence * 100)}% is below the 80% automatic threshold. Review the diff manually.`;
+    } else if (failedCheck) {
+      message = `Validation failed: ${failedCheck.detail}`;
+    } else {
+      message = "Pull request creation is blocked until validation passes and confidence stays above 0.80.";
+    }
     return NextResponse.json(
       {
         error: {
           code: "pr_blocked",
-          message: "Pull request creation is blocked until validation passes and confidence stays above 0.80.",
+          message,
         },
         result,
       },
