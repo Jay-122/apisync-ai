@@ -57,8 +57,8 @@ export async function runDemoMigration(): Promise<MigrationResult> {
 
   const transforms = DEMO_FILES.map((file) => {
     if (file.path === "package.json") {
-      const range = targetDependencyRange("openai", "4.x");
-      return range ? bumpManifestFile(file.path, file.content, "openai", range) : file;
+      const range = targetDependencyRange("openai", "4.x") ?? "^4.0.0";
+      return bumpManifestFile(file.path, file.content, "openai", range);
     }
     return transformFile({ path: file.path, content: file.content, packageName: "openai" });
   });
