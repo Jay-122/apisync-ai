@@ -202,7 +202,7 @@ export function DependencyGraphCanvas({
       {mode === "fallback" ? <GraphFallback /> : null}
       {mode === "canvas" ? (
         <Canvas
-          camera={{ position: [0, 0.15, 7.1], fov: 42 }}
+          camera={{ position: [0, 0.05, 6.4], fov: 38 }}
           dpr={[1, 1.5]}
           frameloop={visible ? "always" : "never"}
           gl={{ antialias: true, powerPreference: "high-performance", alpha: true }}
